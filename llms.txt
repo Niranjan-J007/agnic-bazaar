@@ -1,0 +1,76 @@
+# Prediction market
+
+> Curated markets with named outcomes. The customer has already funded an Agnic Bitcoin wallet. An agent reads this file, picks one outcome, and one Bitcoin payment settles the order. Yes and No are two outcome labels.
+
+`{origin}` is the market server. A local server listens on port 8787. `GET {origin}/` is a read-only board of this catalog. Checkout stays on the API below.
+
+The customer funds an Agnic Bitcoin wallet and leaves its spend caps in place. The agent spends that wallet. It does not ask for a card, a seed, or a second checkout page.
+
+Two ways to place the order, same as O Biscotti:
+
+- Shoplin at `shoplin.agnic.ai`. The customer describes the order in plain language.
+- Any MCP client connected to `https://mcp.agnic.ai/sse`. Claude Code: `claude mcp add --transport sse agnic https://mcp.agnic.ai/sse`. Claude and ChatGPT: add that URL as a custom connector.
+
+## Sample prompts
+
+Say one of these to Shoplin, or to a model that has the Agnic connector. The agent reads the catalog, then pays.
+
+- "What prediction markets are open?"
+- "Buy 1 YES share of '{question}' if the price is at most 6300."
+- "Buy 1 Man City share of '{question}' if the price is at most 1500."
+- "Buy 2 NO shares of '{question}', and do not pay more than 4000."
+- "Did my Bitcoin payment for '{question}' confirm?"
+- "What did '{question}' resolve to?"
+- "Redeem my winning shares of '{question}' back to my Agnic wallet."
+- "Challenge the proposal on '{question}'. The published source disagrees."
+
+`{question}` is the question on an open market. A price such as 6300 is basis points of one share: 6300 means 0.63 of `unitSats`. On a 10,000 sat unit, 1 YES share at 6300 is 6,300 sats plus a 15 sat fee, so the wallet pays 6,315 sats.
+
+## Catalog
+
+```text
+GET {origin}/agent/markets
+GET {origin}/agent/markets/{marketId}
+GET {origin}/agent/resolution/{marketId}
+```
+
+Each market row has `marketId`, `question`, `description`, `category`, `tags`, `closeAt`, `resolutionSource`, `resolutionRules`, `challengePeriod` (seconds), `unitSats`, `outcomes`, `tradedSats`, `maxShares`, `sharesAvailable`, `status`, and `paused`. Each outcome has `id`, `label`, `priceBps`, and `tradedSats`. A market has 2 to 16 outcomes. Prices are basis points from 0 to 10,000 and sum to 10,000. A Yes/No market uses the ids `YES` and `NO`. `tradedSats` is the sum of filled share costs. Status runs `OPEN`, then `CLOSED`, `PROPOSED`, `FINALIZED`, `REDEEMABLE`. Drafts are not listed. After open, an operator may change the quote. A quote already issued keeps its price.
+
+`GET {origin}/agent/markets/{marketId}/quotes` is the published outcome prices. `GET {origin}/agent/events` is the public audit feed.
+
+Buy only while `status` is `OPEN` and `paused` is false. After `closeAt`, checkout is refused.
+
+## Agent payments
+
+The agent uses the bearer token the customer already granted. The first call asks for payment. The retry sends the same body plus proof. The 402 response moves no Bitcoin.
+
+1. `POST {origin}/agent/checkout`
+2. `Authorization: Bearer <agnic token>`
+3. Body: `{"marketId":"<id>","outcome":"YES","quantity":1,"maxPriceBps":6300}`
+4. `outcome` is an outcome id. On a Yes/No market that id is `YES` or `NO`. `maxPriceBps` is the most the customer will pay. A higher quote is refused.
+5. HTTP 402 returns `shareCostSats`, `feeSats`, `amountSats`, `priceBps`, `address`, `feeAddress`, `quoteId`, `expiresAt`, `paymentId`, `checkoutUrl`, and `qrString`. Show `amountSats` before paying. Pay that GoBTC payment from the customer's wallet. The wallet refuses a payment above `max_sats_per_tx` or the remaining daily cap. The network fee is paid by the wallet and is outside `amountSats`.
+6. Retry the identical body with `X-Quote-Id` and `X-Payment-Id`.
+7. `detected` returns HTTP 202. Poll `GET {origin}/agent/orders/{quoteId}` with the same bearer token. `paid` or `cleared` returns HTTP 200 and the share balance. Shares are credited only to the wallet that requested the quote.
+8. `failed`, `expired`, and `canceled` refuse the quote and do not credit shares. Replaying an expired quote fails. One quote accepts one payment.
+
+The fee uses slices of the share cost: 1% of the first 1,000 sats, 0.1% of the next 9,000, and 0.01% above 10,000, floored on each slice. It is owed to `bc1qz5twv72h6a8kguuc2y5zceu5umz44j6qkpa8k37qg59zytjzzn4sj7530k` and is sent when the operator pays that payout. A rounded fee of 0 creates nothing.
+
+Checkout also refuses when the quantity would sell past `maxShares`, or when the operator's complement for that quantity is not available. The customer's wallet does not pay the complement.
+
+## Redeem
+
+After the market is finalized, read the result from `GET {origin}/agent/resolution/{marketId}`. The proposal shows its source, proposer, and challenge deadline.
+
+```text
+POST {origin}/agent/redemptions
+{"marketId":"<id>","outcome":"YES","quantity":1}
+```
+
+A winning share pays `unitSats`, minus the same tiered fee, to the Agnic wallet that bought it. Losing shares pay 0. Redemption cannot exceed that wallet's share balance.
+
+To dispute a proposal during the window:
+
+```text
+POST {origin}/agent/challenges
+{"marketId":"<id>","reason":"The published source disagrees."}
+```

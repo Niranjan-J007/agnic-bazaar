@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: bazaar-postgres
+    environment:
+      POSTGRES_USER: bazaar
+      POSTGRES_PASSWORD: bazaar
+      POSTGRES_DB: bazaar
+    ports:
+      - "5433:5432"
+    volumes:
+      - bazaar_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bazaar -d bazaar"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  bazaar_pg:
