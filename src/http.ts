@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -205,6 +205,11 @@ async function route(service: MarketService, options: HttpOptions, req: Incoming
     send(res, 200, service.listQuotes(decodeURIComponent(parts[2])), options.webOrigin);
     return;
   }
+
+  if (method === "GET" && parts.length === 1 && parts[0] === "llms.txt") {
+    sendLlms(req, res, options.webOrigin);
+    return;
+  }  
 
   if (method === "GET" && parts.length === 3 && parts[0] === "agent" && parts[1] === "markets") {
     send(res, 200, service.getMarket(decodeURIComponent(parts[2])), options.webOrigin);
@@ -442,6 +447,19 @@ function readDraftPatch(req: IncomingMessage): Promise<Partial<PublishInput>> {
     if (body.outcomes !== undefined) patch.outcomes = readOutcomeDrafts(body);
     return patch;
   });
+}
+
+function sendLlms(req: IncomingMessage, res: ServerResponse, origin?: string): void {
+  const file = llmsFile();
+  const raw = file ? readFileSync(file, "utf8") : "Catalog is unavailable.\n";
+  const payload = Buffer.from(raw.replaceAll("{origin}", requestOrigin(req)), "utf8");
+  writeCors(res, origin);
+  res.writeHead(200, {
+    "content-type": "text/plain, charset=utf-8",
+    "content-length": payload.length,
+    "cache-control": "no-cache",
+  });
+  res.send(payload);
 }
 
 function writeCors(res: ServerResponse, origin: string | undefined): void {
