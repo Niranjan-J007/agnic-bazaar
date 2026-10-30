@@ -880,6 +880,7 @@ export class MarketService {
 
   private async requireWallet(token: string): Promise<WalletBalance> {
     const wallet = token ? await this.rails.balance(token) : null;
+    console.log(wallet)
     if (!wallet || !isNativeSegwit(wallet.address)) throw new Unauthorized();
     return wallet;
   }
