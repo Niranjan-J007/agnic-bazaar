@@ -462,6 +462,18 @@ function sendLlms(req: IncomingMessage, res: ServerResponse, origin?: string): v
   res.send(payload);
 }
 
+function llmsFile(): string | undefined {
+  const here = dirname(fileURLtoPath(import.meta.url));
+  return [join(here, "..", "llms.txt"), join(process.cwd(), "llms.txt")].find((candidate) => existsSync(candidate));
+}
+
+function requestOrigin(req: IncomingMessage): string {
+  const host = (header(req, "x-forward-host") ?? header(req, "host") ?? "").split(",")[0]?.trim() ?? "";
+  if(!host) return "";
+  const proto = (header(req, "x-forward-proto") ?? "http").split(",")[0]?.trim() || "http";
+  return `${proto}://${host}`;
+}
+
 function writeCors(res: ServerResponse, origin: string | undefined): void {
   if (!origin) return;
   res.setHeader("access-control-allow-origin", origin);
