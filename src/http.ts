@@ -464,6 +464,10 @@ function sendLlms(req: IncomingMessage, res: ServerResponse, origin?: string): v
 
 function llmsFile(): string | undefined {
   const here = dirname(fileURLToPath(import.meta.url));
+  console.log(here);
+  console.log("\n");
+  console.log([join(here, "..", "llms.txt"), join(process.cwd(), "llms.txt")]);
+  console.log("\n");
   return [join(here, "..", "llms.txt"), join(process.cwd(), "llms.txt")].find((candidate) => existsSync(candidate));
 }
 
