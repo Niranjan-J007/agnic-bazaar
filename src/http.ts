@@ -459,11 +459,11 @@ function sendLlms(req: IncomingMessage, res: ServerResponse, origin?: string): v
     "content-length": payload.length,
     "cache-control": "no-cache",
   });
-  res.send(payload);
+  res.end(payload);
 }
 
 function llmsFile(): string | undefined {
-  const here = dirname(fileURLtoPath(import.meta.url));
+  const here = dirname(fileURLToPath(import.meta.url));
   return [join(here, "..", "llms.txt"), join(process.cwd(), "llms.txt")].find((candidate) => existsSync(candidate));
 }
 
