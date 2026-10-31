@@ -406,6 +406,9 @@ export class MarketService {
   }
 
   async checkout(input: CheckoutInput): Promise<CheckoutResult> {
+    console.log("checkout");
+    console.log(input.token)
+
     const wallet = await this.requireWallet(input.token);
     this.sweep();
     if (typeof input.outcome !== "string" || input.outcome.trim() === "") throw new BadRequest("outcome is required");

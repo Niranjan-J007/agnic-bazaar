@@ -25,6 +25,8 @@ const balances = new AgnicBalances(process.env.AGNIC_API_BASE ?? "https://api.ag
 const payments = new MempoolPayments(process.env.MEMPOOL_API_BASE ?? "https://mempool.space/api");
 const rails: Rails = {
   balance(token: string): Promise<WalletBalance | null> {
+    console.log("rails");
+    console.log(JSON.stringify(balances));
     return balances.balance(token);
   },
   payment(txId: string): Promise<PaymentView> {
