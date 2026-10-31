@@ -49,7 +49,7 @@ async function route(service: MarketService, options: HttpOptions, req: Incoming
   const method = req.method ?? "GET";
   const token = bearer(req);
 
-  if(method === "POST" && parts.lenth === 1 && parts[0] === "messages") {
+  if(method === "POST" && parts.length === 1 && parts[0] === "messages") {
     await postMcpMessage(service, req, res, url, options.webOrigin);
     return;
   }
