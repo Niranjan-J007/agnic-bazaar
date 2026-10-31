@@ -37,6 +37,7 @@ export class AgnicBalances {
     if (res.status === 401 || res.status === 403) return null;
     if (!res.ok) throw new UpstreamError(`agnic balance ${res.status}`);
     const body = (await res.json()) as BalanceBody;
+    console.log(JSON.stringify(body));
     if (!body.has_wallet || !body.multisig_address) return null;
     return {
       address: body.multisig_address,
