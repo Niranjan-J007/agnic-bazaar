@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { openMcpSse, postMcpMessage} from "./mcp.ts"
 import { MarketService } from "./service.ts";
 import {
   BadRequest,
@@ -47,6 +48,11 @@ async function route(service: MarketService, options: HttpOptions, req: Incoming
   const parts = url.pathname.split("/").filter(Boolean);
   const method = req.method ?? "GET";
   const token = bearer(req);
+
+  if(method === "POST" && parts.lenth === 1 && parts[0] === "messages") {
+    await postMcpMessage(service, req, res, url, options.webOrigin);
+    return;
+  }
 
   if (method === "GET" && parts.length === 1 && parts[0] === "health") {
     send(res, 200, { ok: true }, options.webOrigin);
@@ -274,6 +280,11 @@ async function route(service: MarketService, options: HttpOptions, req: Incoming
   }
 
   throw new NotFound("not found");
+}
+
+function pathname(req: IncomingMessage): string {
+  const path = new URL(req.url ?? "/", "http://localhost").pathname.replace(/\/+$/, "");
+  return path == "" ? "/" : path;
 }
 
 function requireToken(token: string | undefined, expected: string): void {

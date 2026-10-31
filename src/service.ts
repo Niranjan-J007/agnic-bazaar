@@ -406,7 +406,6 @@ export class MarketService {
   }
 
   async checkout(input: CheckoutInput): Promise<CheckoutResult> {
-    console.log("checkout")
     const wallet = await this.requireWallet(input.token);
     this.sweep();
     if (typeof input.outcome !== "string" || input.outcome.trim() === "") throw new BadRequest("outcome is required");
@@ -613,7 +612,6 @@ export class MarketService {
   }
 
   private async settle(input: CheckoutInput, wallet: WalletBalance): Promise<CheckoutResult> {
-    console.log("settle")
     const order = this.orderFor(input, wallet);
     if (input.paymentId && order.paymentId && input.paymentId !== order.paymentId) throw new Refusal("payment does not match");
     if (order.status === "filled") return { http: 200, order: this.toOrder(order) };
@@ -623,7 +621,6 @@ export class MarketService {
   }
 
   private async advanceRail(order: Order, wallet: WalletBalance): Promise<CheckoutResult> {
-    console.log("advanceRail")
     if (!this.payments || !order.paymentId) throw new Refusal("payment missing");
     if (order.status === "filled") return { http: 200, order: this.toOrder(order) };
     const payment = await this.payments.status(order.paymentId);
@@ -880,7 +877,6 @@ export class MarketService {
 
   private async requireWallet(token: string): Promise<WalletBalance> {
     const wallet = token ? await this.rails.balance(token) : null;
-    console.log(wallet)
     if (!wallet || !isNativeSegwit(wallet.address)) throw new Unauthorized();
     return wallet;
   }

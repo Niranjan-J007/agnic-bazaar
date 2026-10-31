@@ -9,7 +9,7 @@ The customer funds an Agnic Bitcoin wallet and leaves its spend caps in place. T
 Two ways to place the order, same as O Biscotti:
 
 - Shoplin at `shoplin.agnic.ai`. The customer describes the order in plain language.
-- Any MCP client connected to `https://mcp.agnic.ai/sse`. Claude Code: `claude mcp add --transport sse agnic https://mcp.agnic.ai/sse`. Claude and ChatGPT: add that URL as a custom connector.
+- This market's MCP at `{origin}/sse`. Claude Code: `claude mcp add --transport sse bazaar {origin}/sse`. Claude and ChatGPT: add that URL as a custom connector. The connection sends `Authorization: Bearer <agnic token>`.
 
 ## Sample prompts
 
@@ -39,6 +39,12 @@ Each market row has `marketId`, `question`, `description`, `category`, `tags`, `
 `GET {origin}/agent/markets/{marketId}/quotes` is the published outcome prices. `GET {origin}/agent/events` is the public audit feed.
 
 Buy only while `status` is `OPEN` and `paused` is false. After `closeAt`, checkout is refused.
+
+## MCP
+
+`GET {origin}/sse` speaks the same SSE transport as O Biscotti. The stream sends `event: endpoint` and a `/messages?session_id=` URL. The client posts JSON-RPC there.
+
+Tools are `list_markets`, `get_market`, `list_quotes`, `checkout`, `get_order`, `my_orders`, `my_positions`, `get_resolution`, `redeem`, and `challenge`. `checkout` is the bid. The first call returns the 402 payment. Pay it, then call `checkout` again with `quoteId` and `paymentId`.
 
 ## Agent payments
 
