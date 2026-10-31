@@ -249,6 +249,8 @@ async function route(service: MarketService, options: HttpOptions, req: Incoming
   }
 
   if (method === "POST" && parts.length === 2 && parts[0] === "agent" && parts[1] === "checkout") {
+    console.log("http.ts checkout");
+    console.log(token);
     if (!token) throw new Unauthorized();
     const body = await readJson(req);
     const result = await service.checkout({
