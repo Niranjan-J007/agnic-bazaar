@@ -18,6 +18,7 @@ export class AgnicBalances {
 
   async balance(token: string): Promise<WalletBalance | null> {
     let res: Response;
+    console.log("agnic bitcoin balance");
     try {
       res = await fetch(new URL("/api/bitcoin/balance", this.baseUrl), {
         headers: {
@@ -27,8 +28,12 @@ export class AgnicBalances {
         signal: AbortSignal.timeout(10_000),
       });
     } catch (error) {
+      console.log("balance ERROR");
+      console.log(JSON.stringify(error));
       throw new UpstreamError(error instanceof Error ? error.message : "agnic balance failed");
     }
+    console.log("post api call");
+    console.log(JSON.stringify(res));
     if (res.status === 401 || res.status === 403) return null;
     if (!res.ok) throw new UpstreamError(`agnic balance ${res.status}`);
     const body = (await res.json()) as BalanceBody;
