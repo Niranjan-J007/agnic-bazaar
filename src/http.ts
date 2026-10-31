@@ -30,6 +30,10 @@ export function createApp(service: MarketService, options: HttpOptions): Server 
         res.end();
         return;
       }
+      if(req.method === "GET" && pathname(req) === "/sse") {
+        openMcpSse(req, res, options.webOrigin);
+        return;
+      }
       const run = () => route(service, options, req, res);
       if (options.scope) await options.scope(run);
       else await run();
