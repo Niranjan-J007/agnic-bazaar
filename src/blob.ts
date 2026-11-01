@@ -128,6 +128,7 @@ async function runScope<T>(service: MarketService, store: StateStore, fn: () => 
                 console.warn("Blob conflict detected, retrying...");
                 continue;
             }
+            console.error("Failed to persist state to blob store:", error);
             throw error;
         }
     }
