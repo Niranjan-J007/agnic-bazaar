@@ -24,12 +24,13 @@ export class AgnicBalances {
         headers: {
           accept: "application/json",
           authorization: `Bearer ${token}`,
+          "X-Agnic-Token": token,
         },
         signal: AbortSignal.timeout(10_000),
       });
     } catch (error) {
       console.log("balance ERROR");
-      console.log(JSON.stringify(error));
+      console.error(error);
       throw new UpstreamError(error instanceof Error ? error.message : "agnic balance failed");
     }
     console.log("post api call");
