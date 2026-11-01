@@ -1,5 +1,6 @@
 import pg from "pg";
 import { AgnicBalances } from "./agnic.ts";
+import { blobConfigured, createBlobScope, loadBlobState, persistOnShutdown, saveBlobState, vercelBlobStore} from "./blob.ts"
 import { FEE_ADDRESS, isNativeSegwit } from "./fee.ts";
 import { GobtcPay } from "./gobtcpay.ts";
 import { createApp } from "./http.ts";
@@ -48,12 +49,19 @@ const service = new MarketService({
   redemptionWindowMs: Number(process.env.REDEMPTION_WINDOW_DAYS ?? 90) * 86_400_000,
 });
 const pool = process.env.DATABASE_URL ? new pg.Pool({ connectionString: process.env.DATABASE_URL }) : undefined;
+const blob = pool || !blobConfigured() ? undefined : vercelBlobStore();
+if (blob) {
+  await loadBlobState(service, blob);
+}
 const server = createApp(service, {
   operatorToken,
   oracleToken,
   webOrigin: process.env.WEB_ORIGIN,
-  scope: pool ? createPersistingScope(pool, service) : undefined,
+  scope: pool ? createPersistingScope(pool, service) : blob ? createBlobScope( service, blob) : undefined,
 });
+if (blob) {
+  persistOnShutdown(server, () => saveBlobState(service, blob));
+}
 const port = Number(process.env.PORT ?? 8787);
 
 server.listen(port, () => {
