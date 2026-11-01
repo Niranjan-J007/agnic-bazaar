@@ -813,7 +813,7 @@ export class MarketService {
 
   private marketForCheckout(marketId: string): Market {
     const market = this.markets.get(marketId);
-    if (!market) throw new Refusal("market not found");
+    if (!market) throw new Refusal(`marketForCheckout: market not found ${marketId}`);
     if (market.status !== "OPEN") throw new Refusal("closed");
     if (market.paused) throw new Refusal("paused");
     return market;
@@ -888,7 +888,7 @@ export class MarketService {
 
   private requireMarket(marketId: string): Market {
     const market = this.markets.get(marketId);
-    if (!market) throw new NotFound("market not found");
+    if (!market) throw new NotFound("market not found ${marketId}");
     return market;
   }
 
