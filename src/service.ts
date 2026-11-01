@@ -894,7 +894,7 @@ export class MarketService {
 
   private requirePublic(marketId: string): Market {
     const market = this.requireMarket(marketId);
-    if (market.status === "DRAFT" || market.status === "REVIEW") throw new NotFound("market not found");
+    if (market.status === "DRAFT" || market.status === "REVIEW") throw new NotFound("market not found DRAFT or REVIEW");
     return market;
   }
 

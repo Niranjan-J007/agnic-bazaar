@@ -118,10 +118,12 @@ async function runScope<T>(service: MarketService, store: StateStore, fn: () => 
         const result = await fn();
         const after = JSON.stringify(service.snapshot());
         if (before === after) {
+            console.log("No changes detected, skipping blob save");
             return result;
         }
         try{
             await store.write(after, loaded.etag);
+            console.log("State persisted to blob store");
             return result;
         } catch (error) {
             if (error instanceof BlobConflict && attempt < 2) {
