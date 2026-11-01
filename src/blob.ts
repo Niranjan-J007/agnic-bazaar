@@ -38,7 +38,7 @@ export function vercelBlobStore(): StateStore {
                 }
                 
                 const raw = await readStream(result.stream);
-                return { body: JSON.parse(raw) : null, raw, etag: result.blob.etag };
+                return { body: raw ? JSON.parse(raw) : null, raw, etag: result.blob.etag };
             } catch (error) {
                 if (error instanceof BlobNotFoundError) {
                     return { body: null, raw: null };
