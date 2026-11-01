@@ -60,6 +60,7 @@ const server = createApp(service, {
   scope: pool ? createPersistingScope(pool, service) : blob ? createBlobScope( service, blob) : undefined,
 });
 if (blob) {
+  console.log("Using Vercel Blob Store for state persistence");
   persistOnShutdown(server, () => saveBlobState(service, blob));
 }
 const port = Number(process.env.PORT ?? 8787);
