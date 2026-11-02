@@ -255,6 +255,7 @@ export class MarketService {
       market.maxShares = input.maxShares;
     }
     this.emit("market.updated", market.marketId, {});
+    console.log(`Market updated ${marketId}`);
     return this.toCatalog(market);
   }
 
