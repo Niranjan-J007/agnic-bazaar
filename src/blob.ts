@@ -182,7 +182,7 @@ async function runScope<T>(service: MarketService, store: StateStore, fn: () => 
 
 async function readMetadata(): Promise<{ etag: string } | null> {
     try {
-        return await head(PATHNAME, { access: "public" });
+        return await head(PATHNAME);
     } catch (error) {
         if (isNotFound(error)) {
             return null;
