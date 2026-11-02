@@ -568,6 +568,8 @@ export class MarketService {
       if (error instanceof RangeError) throw new BadRequest(error.message);
       throw error;
     }
+    console.log(`Quote amounts: ${JSON.stringify(amounts)}`);
+    console.log
     if (amounts.complementSats > market.availableComplement) throw new Refusal("complement unavailable");
     this.assertSpendable(wallet, amounts.amountSats);
 
