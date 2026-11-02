@@ -29,6 +29,7 @@ import {
   type ShareBalance,
   type WalletBalance,
 } from "./types.ts";
+import { saveBlobState, vercelBlobStore } from "./blob.ts";
 
 const DAY_MS = 86_400_000;
 
@@ -263,6 +264,9 @@ export class MarketService {
     if (market.status !== "DRAFT") throw new Refusal("market is not a draft");
     market.status = "REVIEW";
     this.emit("market.submitted", market.marketId, {});
+    console.log(`Market submitted ${marketId}`);
+    // force blob save after market submission to ensure state is persisted
+    void saveBlobState(this, vercelBlobStore());
     return this.toCatalog(market);
   }
 
