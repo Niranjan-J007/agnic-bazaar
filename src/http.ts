@@ -93,6 +93,7 @@ async function route(service: MarketService, options: HttpOptions, req: Incoming
   }
 
   if (method === "POST" && parts.length === 4 && parts[0] === "operator" && parts[1] === "markets" && parts[3] === "submit") {
+    console.log("Submitting market");
     requireToken(token, options.operatorToken);
     send(res, 200, service.submit(decodeURIComponent(parts[2])), options.webOrigin);
     return;

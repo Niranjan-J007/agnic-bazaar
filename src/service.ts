@@ -258,6 +258,7 @@ export class MarketService {
   }
 
   submit(marketId: string): CatalogMarket {
+    console.log(`Submitting market ${marketId}`);
     const market = this.requireMarket(marketId);
     if (market.status !== "DRAFT") throw new Refusal("market is not a draft");
     market.status = "REVIEW";

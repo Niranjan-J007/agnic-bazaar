@@ -71,9 +71,11 @@ export async function loadBlobState(service: MarketService, store: StateStore): 
 }
 
 export async function saveBlobState(service: MarketService, store: StateStore): Promise<void> {
+    console.log("Saving blob state");
     const loaded = await store.read();
     const next = JSON.stringify(service.snapshot());
     if (next === loaded.raw) {
+        console.log("No changes to save");
         return;
     }
     try{
