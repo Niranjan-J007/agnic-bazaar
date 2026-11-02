@@ -1,5 +1,5 @@
 import type { Server } from "node:http";
-import { BlobNotFoundError, BlobPreconditionFailedError, get, put } from "@vercel/blob";
+import { BlobNotFoundError, BlobPreconditionFailedError, get, put, head } from "@vercel/blob";
 import type { MarketService } from "./service.ts";
 
 const PATHNAME= "market/service-state.json";
@@ -28,40 +28,80 @@ export function blobConfigured(): boolean {
     return Boolean(process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN);
 }
 
+// export function vercelBlobStore(): StateStore {
+//     return {
+//         read: async () => {
+//             try {
+//                 const result = await get(PATHNAME, { access: "public", useCache: false });
+//                 if(!result || result.statusCode !== 200 || !result.stream) {
+//                     return { body: null, raw: null };
+//                 }
+                
+//                 const raw = await readStream(result.stream);
+//                 return { body: raw ? JSON.parse(raw) : null, raw, etag: result.blob.etag };
+//             } catch (error) {
+//                 if (error instanceof BlobNotFoundError) {
+//                     return { body: null, raw: null };
+//                 }
+//                 throw error;
+//             }
+//         },
+//         write: async (raw, etag) => {
+//             try {
+//                 await put(PATHNAME, raw, { 
+//                     access: "public", 
+//                     allowOverwrite: true,
+//                     contentType: "application/json",
+//                     ...(etag ? { ifMatch: etag } : {}),
+//                 });            
+             
+//             } catch (error) {
+//                 console.error("Failed to write blob state:", error);
+//                 if (error instanceof BlobPreconditionFailedError) {
+//                     throw new BlobConflict();
+//                 }
+//                 throw error;
+//             }
+//         }
+//     };
+// }
+
 export function vercelBlobStore(): StateStore {
     return {
-        read: async () => {
-            try {
-                const result = await get(PATHNAME, { access: "public", useCache: false });
-                if(!result || result.statusCode !== 200 || !result.stream) {
-                    return { body: null, raw: null };
-                }
-                
-                const raw = await readStream(result.stream);
-                return { body: raw ? JSON.parse(raw) : null, raw, etag: result.blob.etag };
-            } catch (error) {
-                if (error instanceof BlobNotFoundError) {
-                    return { body: null, raw: null };
-                }
-                throw error;
+        async read() {
+            const metadata = await readMetadata();
+            if (!metadata) {
+                return { body: null, raw: null };
             }
+            const result = await get(PATHNAME, { access: "public", useCache: false });
+            if (!result || result.statusCode !== 200 || !result.stream) {
+                // return { body: null, raw: null };
+                throw new Error("Failed to read blob state");
+            }
+            const raw = await readStream(result.stream);
+            return { body: raw ? JSON.parse(raw) : null, raw, etag: result.blob.etag };
         },
-        write: async (raw, etag) => {
-            try {
-                await put(PATHNAME, raw, { 
-                    access: "public", 
-                    allowOverwrite: true,
-                    contentType: "application/json",
-                    ...(etag ? { ifMatch: etag } : {}),
-                });            
-             
-            } catch (error) {
-                console.error("Failed to write blob state:", error);
-                if (error instanceof BlobPreconditionFailedError) {
-                    throw new BlobConflict();
+        async write(raw, etag) {
+            let last: unknown;
+            for(const candidate of etaghCadidates(etag)) {
+                try {
+                    await put(PATHNAME, raw, {
+                        access: "public",
+                        allowOverwrite: true,
+                        contentType: "application/json",
+                        ...(candidate ? { ifMatch: candidate } : {}),
+                    });
+                    return;
+                } catch (error) {
+                    if(!isPrecondition(error)) {
+                        console.error("Failed to write blob state:", error);
+                        throw error;
+                    }
+                    last = error;
                 }
-                throw error;
             }
+            throw last instanceof BlobConflict ? last : new BlobConflict();
+
         }
     };
 }
@@ -138,6 +178,37 @@ async function runScope<T>(service: MarketService, store: StateStore, fn: () => 
         }
     }
     throw new BlobConflict();
+}
+
+async function readMetadata(): Promise<{ etag: string } | null> {
+    try {
+        return await head(PATHNAME, { access: "public" });
+    } catch (error) {
+        if (isNotFound(error)) {
+            return null;
+        }
+        throw error;
+    }
+}
+
+function isNotFound(error: unknown): boolean {
+    return error instanceof BlobNotFoundError || (error instanceof Error && error.name === "BlobNotFoundError");
+}
+
+function isPrecondition(error: unknown): boolean {
+    return error instanceof BlobPreconditionFailedError || (error instanceof Error && error.name === "BlobPreconditionFailedError");
+}
+
+function etaghCadidates(etag?: string): Array<string | undefined> {
+    if (!etag) {
+        return [undefined];
+    }
+    const bare = etag.replace(/^W\//, "").replace(/^"(.*)"$/, "$1");
+    return [... new Set([etag, `"${bare}"`, bare])];
+}
+
+function isConflict(error: unknown): boolean {
+    return error instanceof BlobConflict || isPrecondition(error) || (error instanceof Error && error.name === "BlobConflict");
 }
 
 function asSnapshot(body: unknown): Snapshot {
