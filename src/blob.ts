@@ -56,6 +56,7 @@ export function vercelBlobStore(): StateStore {
                 });            
              
             } catch (error) {
+                console.error("Failed to write blob state:", error);
                 if (error instanceof BlobPreconditionFailedError) {
                     throw new BlobConflict();
                 }
