@@ -888,13 +888,13 @@ export class MarketService {
 
   private requireMarket(marketId: string): Market {
     const market = this.markets.get(marketId);
-    if (!market) throw new NotFound("market not found ${marketId}");
+    if (!market) throw new NotFound(`requireMarket: market not found ${marketId}`);
     return market;
   }
 
   private requirePublic(marketId: string): Market {
     const market = this.requireMarket(marketId);
-    if (market.status === "DRAFT" || market.status === "REVIEW") throw new NotFound("market not found DRAFT or REVIEW");
+    if (market.status === "DRAFT" || market.status === "REVIEW") throw new NotFound(`requirePublic: market not found ${marketId}`);
     return market;
   }
 
